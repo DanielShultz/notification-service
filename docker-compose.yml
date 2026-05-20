@@ -1,0 +1,115 @@
+services:
+  app:
+    build:
+      context: .
+      target: app
+    command: sh -c "php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000"
+    env_file:
+      - .env
+    ports:
+      - "${APP_PORT:-8012}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php -r \"exit(@file_get_contents('http://127.0.0.1:8000/api/v1/health') === false ? 1 : 0);\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      target: app
+    command: php artisan notifications:consume
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      app:
+        condition: service_healthy
+    restart: unless-stopped
+
+  test:
+    build:
+      context: .
+      target: app-test
+    command: php artisan test
+    env_file:
+      - .env
+    profiles:
+      - test
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-notification_service}"
+      POSTGRES_USER: "${DB_USERNAME:-notification_service}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-notification_service}"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-notification_service} -d ${DB_DATABASE:-notification_service}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-notification_service}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-notification_service}"
+    ports:
+      - "${RABBITMQ_MANAGEMENT_PORT:-15673}:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v5.17.14
+    environment:
+      SWAGGER_JSON_URL: "/openapi.yaml"
+    volumes:
+      - ./public/openapi.yaml:/usr/share/nginx/html/openapi.yaml:ro
+    ports:
+      - "${SWAGGER_UI_PORT:-8014}:8080"
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:

@@ -1,0 +1,17 @@
+.git
+.idea
+.vscode
+node_modules
+vendor
+~syncthing~*.tmp
+.syncthing*.tmp
+openapi.yaml
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+.env
+.phpunit.cache
+.phpunit.result.cache
+storage/pail
+bootstrap/cache/*.php
