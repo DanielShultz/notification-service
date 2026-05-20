@@ -13,38 +13,37 @@ final readonly class LogNotificationQueuePublisher implements NotificationQueueP
 {
     public function __construct(
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     public function publish(QueueMessage $message, NotificationTrafficType $trafficType): void
     {
-        $this->logger->info("Notification queued for delivery", [
-            "notification_id" => $message->notificationId,
-            "attempt" => $message->attempt,
-            "trace_id" => $message->traceId,
-            "traffic_type" => $trafficType->value,
+        $this->logger->info('Notification queued for delivery', [
+            'notification_id' => $message->notificationId,
+            'attempt' => $message->attempt,
+            'batch_id' => $message->batchId,
+            'traffic_type' => $trafficType->value,
         ]);
     }
 
     public function publishRetry(QueueMessage $message, int $delaySeconds): void
     {
-        $this->logger->warning("Notification queued for retry", [
-            "notification_id" => $message->notificationId,
-            "attempt" => $message->attempt,
-            "trace_id" => $message->traceId,
-            "traffic_type" => $message->trafficType->value,
-            "delay_seconds" => $delaySeconds,
+        $this->logger->warning('Notification queued for retry', [
+            'notification_id' => $message->notificationId,
+            'attempt' => $message->attempt,
+            'batch_id' => $message->batchId,
+            'traffic_type' => $message->trafficType->value,
+            'delay_seconds' => $delaySeconds,
         ]);
     }
 
     public function publishDeadLetter(QueueMessage $message, string $reason): void
     {
-        $this->logger->warning("Notification moved to dead letter queue", [
-            "notification_id" => $message->notificationId,
-            "attempt" => $message->attempt,
-            "trace_id" => $message->traceId,
-            "traffic_type" => $message->trafficType->value,
-            "reason" => $reason,
+        $this->logger->warning('Notification moved to dead letter queue', [
+            'notification_id' => $message->notificationId,
+            'attempt' => $message->attempt,
+            'batch_id' => $message->batchId,
+            'traffic_type' => $message->trafficType->value,
+            'reason' => $reason,
         ]);
     }
 }

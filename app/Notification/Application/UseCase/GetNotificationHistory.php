@@ -9,9 +9,7 @@ use App\Notification\Application\Port\NotificationReadRepository;
 
 final readonly class GetNotificationHistory
 {
-    public function __construct(private NotificationReadRepository $repository)
-    {
-    }
+    public function __construct(private NotificationReadRepository $repository) {}
 
     public function execute(string $notificationId): ?NotificationHistory
     {

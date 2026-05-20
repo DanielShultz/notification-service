@@ -7,7 +7,7 @@ namespace App\Notification\Application\DTO;
 final readonly class NotificationHistory
 {
     /**
-     * @param list<NotificationHistoryEntry> $history
+     * @param  list<NotificationHistoryEntry>  $history
      */
     public function __construct(
         public string $id,
@@ -19,6 +19,5 @@ final readonly class NotificationHistory
         public int $attempts,
         public ?string $lastError,
         public array $history,
-    ) {
-    }
+    ) {}
 }

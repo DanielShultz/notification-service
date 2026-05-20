@@ -14,37 +14,38 @@ final class QueueMessageSerializerTest extends TestCase
 {
     public function test_serializes_queue_message_to_json(): void
     {
-        $payload = (new QueueMessageSerializer())->serialize(new QueueMessage(
-            "notification-1",
+        $payload = (new QueueMessageSerializer)->serialize(new QueueMessage(
+            'notification-1',
             2,
-            "trace-1",
+            'batch-1',
             NotificationTrafficType::Transactional,
         ));
 
         $this->assertJsonStringEqualsJsonString(
-            '{"notification_id":"notification-1","attempt":2,"trace_id":"trace-1","traffic_type":"transactional"}',
+            '{"notification_id":"notification-1","attempt":2,"batch_id":"batch-1","traffic_type":"transactional"}',
             $payload,
         );
     }
 
     public function test_deserializes_queue_message_from_json(): void
     {
-        $message = (new QueueMessageSerializer())->deserialize(
-            '{"notification_id":"notification-1","attempt":2,"trace_id":"trace-1","traffic_type":"transactional"}',
+        $message = (new QueueMessageSerializer)->deserialize(
+            '{"notification_id":"notification-1","attempt":2,"batch_id":"batch-1","traffic_type":"transactional"}',
         );
 
-        $this->assertSame("notification-1", $message->notificationId);
+        $this->assertSame('notification-1', $message->notificationId);
         $this->assertSame(2, $message->attempt);
-        $this->assertSame("trace-1", $message->traceId);
+        $this->assertSame('batch-1', $message->batchId);
         $this->assertSame(NotificationTrafficType::Transactional, $message->trafficType);
     }
 
-    public function test_deserializes_legacy_queue_message_as_default_traffic(): void
+    public function test_deserializes_queue_message_without_traffic_type_as_default_traffic(): void
     {
-        $message = (new QueueMessageSerializer())->deserialize(
-            '{"notification_id":"notification-1","attempt":2,"trace_id":"trace-1"}',
+        $message = (new QueueMessageSerializer)->deserialize(
+            '{"notification_id":"notification-1","attempt":2,"batch_id":"batch-1"}',
         );
 
+        $this->assertSame('batch-1', $message->batchId);
         $this->assertSame(NotificationTrafficType::Marketing, $message->trafficType);
     }
 
@@ -52,15 +53,15 @@ final class QueueMessageSerializerTest extends TestCase
     {
         $this->expectException(UnexpectedValueException::class);
 
-        (new QueueMessageSerializer())->deserialize('{"notification_id":"notification-1"}');
+        (new QueueMessageSerializer)->deserialize('{"notification_id":"notification-1"}');
     }
 
     public function test_rejects_non_integer_attempt(): void
     {
         $this->expectException(UnexpectedValueException::class);
 
-        (new QueueMessageSerializer())->deserialize(
-            '{"notification_id":"notification-1","attempt":"2","trace_id":"trace-1","traffic_type":"marketing"}',
+        (new QueueMessageSerializer)->deserialize(
+            '{"notification_id":"notification-1","attempt":"2","batch_id":"batch-1","traffic_type":"marketing"}',
         );
     }
 
@@ -68,8 +69,8 @@ final class QueueMessageSerializerTest extends TestCase
     {
         $this->expectException(UnexpectedValueException::class);
 
-        (new QueueMessageSerializer())->deserialize(
-            '{"notification_id":"notification-1","attempt":0,"trace_id":"trace-1","traffic_type":"marketing"}',
+        (new QueueMessageSerializer)->deserialize(
+            '{"notification_id":"notification-1","attempt":0,"batch_id":"batch-1","traffic_type":"marketing"}',
         );
     }
 }

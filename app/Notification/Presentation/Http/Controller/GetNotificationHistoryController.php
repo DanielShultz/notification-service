@@ -7,6 +7,7 @@ namespace App\Notification\Presentation\Http\Controller;
 use App\Http\Controllers\Controller;
 use App\Notification\Application\DTO\NotificationHistoryEntry;
 use App\Notification\Application\UseCase\GetNotificationHistory;
+use App\Notification\Presentation\Http\NotificationStatusPresenter;
 use Illuminate\Http\JsonResponse;
 
 final class GetNotificationHistoryController extends Controller
@@ -17,24 +18,24 @@ final class GetNotificationHistoryController extends Controller
 
         if ($notification === null) {
             return response()->json([
-                "message" => "Notification not found.",
+                'message' => 'Notification not found.',
             ], 404);
         }
 
         return response()->json([
-            "notification_id" => $notification->id,
-            "batch_id" => $notification->batchId,
-            "recipient_id" => $notification->recipientId,
-            "channel" => $notification->channel,
-            "traffic_type" => $notification->trafficType,
-            "status" => $notification->status,
-            "attempts" => $notification->attempts,
-            "last_error" => $notification->lastError,
-            "history" => array_map(
+            'notification_id' => $notification->id,
+            'batch_id' => $notification->batchId,
+            'recipient_id' => $notification->recipientId,
+            'channel' => $notification->channel,
+            'traffic_type' => $notification->trafficType,
+            'status' => NotificationStatusPresenter::publicStatus($notification->status),
+            'attempts' => $notification->attempts,
+            'last_error' => $notification->lastError,
+            'history' => array_map(
                 static fn (NotificationHistoryEntry $entry): array => [
-                    "status" => $entry->status,
-                    "reason" => $entry->reason,
-                    "created_at" => $entry->createdAt,
+                    'status' => NotificationStatusPresenter::publicStatus($entry->status),
+                    'reason' => $entry->reason,
+                    'created_at' => $entry->createdAt,
                 ],
                 $notification->history,
             ),

@@ -15,4 +15,3 @@ interface NotificationQueuePublisher
 
     public function publishDeadLetter(QueueMessage $message, string $reason): void;
 }
-

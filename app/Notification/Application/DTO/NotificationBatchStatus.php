@@ -7,8 +7,8 @@ namespace App\Notification\Application\DTO;
 final readonly class NotificationBatchStatus
 {
     /**
-     * @param array<string, int> $statusCounts
-     * @param list<NotificationSummary> $notifications
+     * @param  array<string, int>  $statusCounts
+     * @param  list<NotificationSummary>  $notifications
      */
     public function __construct(
         public string $id,
@@ -19,6 +19,5 @@ final readonly class NotificationBatchStatus
         public array $notifications,
         public string $createdAt,
         public string $updatedAt,
-    ) {
-    }
+    ) {}
 }

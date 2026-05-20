@@ -10,6 +10,6 @@ final class IdempotencyKeyReserved extends RuntimeException
 {
     public function __construct()
     {
-        parent::__construct("Idempotency key is already being processed.");
+        parent::__construct('Idempotency key is already being processed.');
     }
 }

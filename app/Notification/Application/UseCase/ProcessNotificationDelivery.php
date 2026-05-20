@@ -19,41 +19,38 @@ final readonly class ProcessNotificationDelivery
         private NotificationProvider $provider,
         private NotificationQueuePublisher $queuePublisher,
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     public function execute(QueueMessage $message): void
     {
         $notification = $this->repository->claimForDelivery($message->notificationId);
 
         if ($notification === null) {
-            $this->logger->warning("Notification delivery message skipped", [
-                "notification_id" => $message->notificationId,
-                "attempt" => $message->attempt,
-                "trace_id" => $message->traceId,
+            $this->logger->warning('Notification delivery message skipped', [
+                'notification_id' => $message->notificationId,
+                'attempt' => $message->attempt,
+                'batch_id' => $message->batchId,
             ]);
 
             return;
         }
 
         if ($this->isFinalStatus($notification->status)) {
-            $this->logger->info("Notification delivery message already finalized", [
-                "notification_id" => $message->notificationId,
-                "batch_id" => $notification->batchId,
-                "status" => $notification->status->value,
-                "attempt" => $message->attempt,
-                "trace_id" => $message->traceId,
+            $this->logger->info('Notification delivery message already finalized', [
+                'notification_id' => $message->notificationId,
+                'batch_id' => $notification->batchId,
+                'status' => $notification->status->value,
+                'attempt' => $message->attempt,
             ]);
 
             return;
         }
 
         if ($notification->status === NotificationStatus::Sent) {
-            $this->logger->warning("Notification delivery message was already sent; marking as delivered without provider retry", [
-                "notification_id" => $message->notificationId,
-                "batch_id" => $notification->batchId,
-                "attempt" => $message->attempt,
-                "trace_id" => $message->traceId,
+            $this->logger->warning('Notification delivery message was already sent; marking as delivered without provider retry', [
+                'notification_id' => $message->notificationId,
+                'batch_id' => $notification->batchId,
+                'attempt' => $message->attempt,
             ]);
             $this->repository->markDelivered($notification->id);
 
@@ -63,8 +60,7 @@ final readonly class ProcessNotificationDelivery
         $result = $this->provider->send($notification);
 
         if ($result->status === ProviderDeliveryStatus::Delivered) {
-            $this->repository->markSent($notification->id, $message->attempt);
-            $this->repository->markDelivered($notification->id);
+            $this->repository->markSentAndDelivered($notification->id, $message->attempt);
 
             return;
         }
@@ -78,7 +74,7 @@ final readonly class ProcessNotificationDelivery
             return;
         }
 
-        $maxAttempts = (int)config("notification.max_attempts");
+        $maxAttempts = (int) config('notification.max_attempts');
         $nextAttempt = $message->attempt + 1;
 
         if ($message->attempt >= $maxAttempts) {
@@ -90,8 +86,8 @@ final readonly class ProcessNotificationDelivery
 
         $this->repository->markRetryScheduled($notification->id, $message->attempt, $reason);
         $this->queuePublisher->publishRetry(
-            new QueueMessage($message->notificationId, $nextAttempt, $message->traceId, $notification->trafficType),
-            (int)config("notification.retry_delay_seconds"),
+            new QueueMessage($message->notificationId, $nextAttempt, $message->batchId, $notification->trafficType),
+            (int) config('notification.retry_delay_seconds'),
         );
     }
 

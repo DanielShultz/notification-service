@@ -10,6 +10,5 @@ final readonly class NotificationHistoryEntry
         public string $status,
         public ?string $reason,
         public string $createdAt,
-    ) {
-    }
+    ) {}
 }

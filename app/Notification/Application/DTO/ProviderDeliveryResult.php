@@ -11,7 +11,5 @@ final readonly class ProviderDeliveryResult
     public function __construct(
         public ProviderDeliveryStatus $status,
         public ?string $errorMessage = null,
-    ) {
-    }
+    ) {}
 }
-

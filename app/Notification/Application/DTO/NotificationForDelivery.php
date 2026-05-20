@@ -19,6 +19,5 @@ final readonly class NotificationForDelivery
         public NotificationStatus $status,
         public string $message,
         public int $attempts,
-    ) {
-    }
+    ) {}
 }

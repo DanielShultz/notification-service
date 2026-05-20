@@ -14,20 +14,22 @@ use App\Notification\Application\Port\NotificationQueuePublisher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 final readonly class CreateNotificationBatch
 {
     private const IDEMPOTENCY_TTL_SECONDS = 86400;
-    private const RESERVED_LOOKUP_ATTEMPTS = 20;
-    private const RESERVED_LOOKUP_DELAY_MICROSECONDS = 100000;
+
+    private const RESERVED_LOOKUP_ATTEMPTS = 3;
+
+    private const RESERVED_LOOKUP_DELAY_MICROSECONDS = 20000;
 
     public function __construct(
         private NotificationBatchRepository $repository,
         private NotificationQueuePublisher $queuePublisher,
         private IdempotencyStore $idempotencyStore,
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     public function execute(CreateNotificationBatchRequest $request): CreateNotificationBatchResponse
     {
@@ -46,34 +48,49 @@ final readonly class CreateNotificationBatch
             return $this->existingResponse($request->idempotencyKey);
         }
 
-        $batchId = (string)Str::uuid();
+        $batchId = (string) Str::uuid();
         $notificationIds = [];
 
         foreach ($request->recipientIds as $recipientId) {
-            $notificationIds[$recipientId] = (string)Str::uuid();
+            $notificationIds[$recipientId] = (string) Str::uuid();
         }
 
         try {
             $this->repository->createBatch($request, $batchId, $notificationIds);
         } catch (QueryException $exception) {
-            if (!$this->isUniqueConstraintViolation($exception)) {
+            if (! $this->isUniqueConstraintViolation($exception)) {
                 throw $exception;
             }
 
             return $this->existingResponse($request->idempotencyKey);
         }
 
-        foreach ($notificationIds as $notificationId) {
-            $this->queuePublisher->publish(
-                new QueueMessage($notificationId, 1, $batchId, $request->trafficType),
-                $request->trafficType,
-            );
+        $publishedCount = 0;
+
+        try {
+            foreach ($notificationIds as $notificationId) {
+                $this->queuePublisher->publish(
+                    new QueueMessage($notificationId, 1, $batchId, $request->trafficType),
+                    $request->trafficType,
+                );
+                $publishedCount++;
+            }
+        } catch (Throwable $exception) {
+            $this->logger->error('Notification batch publishing interrupted', [
+                'batch_id' => $batchId,
+                'notification_id' => $notificationId ?? null,
+                'published_count' => $publishedCount,
+                'total_count' => count($notificationIds),
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw $exception;
         }
 
         $this->idempotencyStore->remember($request->idempotencyKey, $batchId, self::IDEMPOTENCY_TTL_SECONDS);
-        $this->logger->info("Notification batch created", [
-            "batch_id" => $batchId,
-            "notification_count" => count($notificationIds),
+        $this->logger->info('Notification batch created', [
+            'batch_id' => $batchId,
+            'notification_count' => count($notificationIds),
         ]);
 
         return new CreateNotificationBatchResponse($batchId, count($notificationIds), false);
@@ -96,14 +113,11 @@ final readonly class CreateNotificationBatch
             usleep(self::RESERVED_LOOKUP_DELAY_MICROSECONDS);
         }
 
-        throw new IdempotencyKeyReserved();
+        throw new IdempotencyKeyReserved;
     }
 
     private function isUniqueConstraintViolation(QueryException $exception): bool
     {
-        $code = (string)$exception->getCode();
-
-        return in_array($code, ["23000", "23505"], true)
-            || str_contains($exception->getMessage(), "notification_batches_idempotency_key_unique");
+        return (string) $exception->getCode() === '23505';
     }
 }

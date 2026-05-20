@@ -11,8 +11,7 @@ final readonly class QueueMessage
     public function __construct(
         public string $notificationId,
         public int $attempt,
-        public string $traceId,
+        public string $batchId,
         public NotificationTrafficType $trafficType,
-    ) {
-    }
+    ) {}
 }

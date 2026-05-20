@@ -18,6 +18,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: One or more dependencies are unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
   /v1/notification-batches:
     post:
       summary: Create notification batch
@@ -74,6 +80,12 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Request with this Idempotency-Key is already being processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many batch creation requests
           content:
             application/json:
               schema:
@@ -151,13 +163,33 @@ components:
       required:
         - status
         - service
+        - dependencies
       properties:
         status:
           type: string
+          enum:
+            - ok
+            - unavailable
           example: ok
         service:
           type: string
           example: notification-service
+        dependencies:
+          type: object
+          required:
+            - postgresql
+            - redis
+            - rabbitmq
+          properties:
+            postgresql:
+              type: boolean
+              example: true
+            redis:
+              type: boolean
+              example: true
+            rabbitmq:
+              type: boolean
+              example: true
     CreateNotificationBatchRequest:
       type: object
       required:
@@ -360,8 +392,6 @@ components:
       type: string
       enum:
         - queued
-        - processing
         - sent
         - delivered
-        - retry_scheduled
         - dropped

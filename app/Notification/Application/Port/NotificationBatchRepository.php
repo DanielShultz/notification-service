@@ -9,7 +9,7 @@ use App\Notification\Application\DTO\CreateNotificationBatchRequest;
 interface NotificationBatchRepository
 {
     /**
-     * @param array<string, string> $notificationIds
+     * @param  array<string, string>  $notificationIds
      */
     public function createBatch(CreateNotificationBatchRequest $request, string $batchId, array $notificationIds): void;
 

@@ -20,6 +20,8 @@ interface NotificationDeliveryRepository
 
     public function markDelivered(string $notificationId): void;
 
+    public function markSentAndDelivered(string $notificationId, int $attempts): void;
+
     public function markDropped(string $notificationId, string $reason): void;
 
     public function markRetryScheduled(string $notificationId, int $attempts, string $reason): void;

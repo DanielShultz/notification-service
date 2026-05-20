@@ -9,12 +9,13 @@ use Illuminate\Contracts\Cache\Repository;
 
 final readonly class RedisIdempotencyStore implements IdempotencyStore
 {
-    private const RESERVED_VALUE = "__reserved__";
+    public const KEY_PREFIX = 'notification:idempotency:';
+
+    private const RESERVED_VALUE = '__reserved__';
 
     public function __construct(
         private Repository $cache,
-    ) {
-    }
+    ) {}
 
     public function reserve(string $key, int $ttlSeconds): bool
     {
@@ -34,12 +35,11 @@ final readonly class RedisIdempotencyStore implements IdempotencyStore
             return null;
         }
 
-        return (string)$value;
+        return (string) $value;
     }
 
     private function key(string $key): string
     {
-        return "notification:idempotency:{$key}";
+        return self::KEY_PREFIX.$key;
     }
 }
-

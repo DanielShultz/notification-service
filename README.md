@@ -10,10 +10,11 @@
 - Каналы доставки: `sms`, `email`.
 - Типы трафика: `transactional`, `marketing`.
 - Приоритетная обработка: transactional-сообщения читаются из `notifications.high` раньше marketing-сообщений из `notifications.default`.
-- Статусы доставки: `queued`, `processing`, `sent`, `delivered`, `retry_scheduled`, `dropped`.
+- Публичные статусы доставки: `queued`, `sent`, `delivered`, `dropped`.
 - История изменения статусов по каждому уведомлению.
 - API истории всех уведомлений конкретного получателя.
 - Идемпотентность создания batch через обязательный заголовок `Idempotency-Key`.
+- Rate limiting endpoint'а создания batch.
 - Retry при временной ошибке провайдера.
 - DLQ при постоянной ошибке или исчерпании попыток.
 - Защита от повторной бизнес-отправки при at-least-once доставке RabbitMQ.
@@ -42,6 +43,8 @@
 Контроллеры тонкие: валидируют вход, вызывают use case и формируют JSON. Use case'ы работают через интерфейсы портов, поэтому бизнес-логика не зависит напрямую от Eloquent, RabbitMQ или Redis.
 
 PostgreSQL является источником истины для текущего статуса и истории. RabbitMQ используется только как транспорт задач доставки.
+
+Внутри сервиса дополнительно используются технические статусы `processing` и `retry_scheduled`. В публичном API они схлопываются в `queued`, чтобы контракт соответствовал ТЗ.
 
 ## Запуск
 
@@ -139,7 +142,7 @@ Payload сообщения минимальный:
 {
   "notification_id": "uuid",
   "attempt": 1,
-  "trace_id": "uuid",
+  "batch_id": "uuid",
   "traffic_type": "transactional"
 }
 ```
@@ -160,7 +163,9 @@ Retry сохраняет исходный `traffic_type`: после задер�
 
 ## At-Least-Once и идемпотентность
 
-RabbitMQ дает at-least-once доставку, поэтому одно сообщение может быть получено повторно. На уровне бизнес-логики worker проверяет текущий статус уведомления:
+RabbitMQ дает at-least-once доставку, поэтому одно сообщение может быть получено повторно. Exactly-once на уровне бизнес-логики реализован через атомарный claim уведомления и проверку финальных статусов: повторно доставленное сообщение не вызывает provider второй раз для уже обработанного уведомления.
+
+Worker проверяет текущий статус уведомления:
 
 - если статус уже `delivered` или `dropped`, provider повторно не вызывается;
 - если статус уже `processing`, значит другое выполнение worker забрало уведомление, поэтому provider повторно не вызывается;
@@ -187,6 +192,14 @@ docker compose run --rm test
 - success/retry/DLQ сценарии use case доставки;
 - защита от повторной отправки уже финализированного уведомления;
 - маршрутизация transactional-трафика в high-priority очередь.
+
+Интеграционный PHPUnit-тест полной цепочки на реальных PostgreSQL, Redis и RabbitMQ поднимает зависимости через Testcontainers:
+
+```bash
+docker compose run --rm test vendor/bin/phpunit -c phpunit.integration.xml
+```
+
+Он автоматически проверяет путь `HTTP API -> PostgreSQL -> RabbitMQ -> worker -> mock provider -> PostgreSQL`, историю статусов получателя и попадание сообщения в `notifications.dlq` при постоянной ошибке. Для запуска нужен доступ к Docker socket, поэтому test-сервис монтирует `/var/run/docker.sock` и использует `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal`.
 
 Интеграционный smoke полной цепочки:
 

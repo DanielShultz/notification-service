@@ -12,4 +12,3 @@ interface IdempotencyStore
 
     public function getResultId(string $key): ?string;
 }
-

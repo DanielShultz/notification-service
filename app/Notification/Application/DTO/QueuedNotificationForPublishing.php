@@ -13,6 +13,5 @@ final readonly class QueuedNotificationForPublishing
         public string $batchId,
         public NotificationTrafficType $trafficType,
         public int $attempt,
-    ) {
-    }
+    ) {}
 }

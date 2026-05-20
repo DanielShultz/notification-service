@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notification\Infrastructure\Queue\RabbitMq;
 
 use App\Notification\Application\DTO\QueueMessage;
+use App\Notification\Application\Port\NotificationConsumer;
 use App\Notification\Application\Port\NotificationDeliveryRepository;
 use App\Notification\Application\Port\NotificationQueuePublisher;
 use App\Notification\Application\UseCase\ProcessNotificationDelivery;
@@ -14,7 +15,7 @@ use Psr\Log\LoggerInterface;
 use Throwable;
 use UnexpectedValueException;
 
-final readonly class RabbitMqNotificationConsumer
+final readonly class RabbitMqNotificationConsumer implements NotificationConsumer
 {
     public function __construct(
         private RabbitMqConnectionFactory $connectionFactory,
@@ -25,8 +26,7 @@ final readonly class RabbitMqNotificationConsumer
         private NotificationDeliveryRepository $deliveryRepository,
         private NotificationQueuePublisher $queuePublisher,
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     public function consumeOnce(): bool
     {
@@ -34,14 +34,14 @@ final readonly class RabbitMqNotificationConsumer
         $channel = $connection->channel();
 
         try {
-            $this->topology->declare($channel);
+            $this->topology->declareOnce($channel);
 
-            $message = $channel->basic_get($this->config->queues["high"]);
-            $queueName = $this->config->queues["high"];
+            $message = $channel->basic_get($this->config->queues['high']);
+            $queueName = $this->config->queues['high'];
 
             if ($message === null) {
-                $message = $channel->basic_get($this->config->queues["default"]);
-                $queueName = $this->config->queues["default"];
+                $message = $channel->basic_get($this->config->queues['default']);
+                $queueName = $this->config->queues['default'];
             }
 
             if ($message === null) {
@@ -53,7 +53,6 @@ final readonly class RabbitMqNotificationConsumer
             return true;
         } finally {
             $channel->close();
-            $connection->close();
         }
     }
 
@@ -65,17 +64,17 @@ final readonly class RabbitMqNotificationConsumer
             $queueMessage = $this->serializer->deserialize($message->getBody());
             $this->processNotificationDelivery->execute($queueMessage);
             $message->ack();
-        } catch (JsonException | UnexpectedValueException $exception) {
-            $this->logger->error("Invalid notification message rejected", [
-                "queue" => $queueName,
-                "error" => $exception->getMessage(),
+        } catch (JsonException|UnexpectedValueException $exception) {
+            $this->logger->error('Invalid notification message rejected', [
+                'queue' => $queueName,
+                'error' => $exception->getMessage(),
             ]);
 
             $message->reject(false);
         } catch (Throwable $exception) {
-            $this->logger->error("Notification message processing failed", [
-                "queue" => $queueName,
-                "error" => $exception->getMessage(),
+            $this->logger->error('Notification message processing failed', [
+                'queue' => $queueName,
+                'error' => $exception->getMessage(),
             ]);
 
             $this->retryOrDeadLetter($queueMessage, $exception->getMessage());
@@ -89,7 +88,7 @@ final readonly class RabbitMqNotificationConsumer
             return;
         }
 
-        $maxAttempts = (int)config("notification.max_attempts");
+        $maxAttempts = (int) config('notification.max_attempts');
 
         if ($queueMessage->attempt >= $maxAttempts) {
             $this->deliveryRepository->markDropped($queueMessage->notificationId, $reason);
@@ -103,10 +102,10 @@ final readonly class RabbitMqNotificationConsumer
             new QueueMessage(
                 $queueMessage->notificationId,
                 $queueMessage->attempt + 1,
-                $queueMessage->traceId,
+                $queueMessage->batchId,
                 $queueMessage->trafficType,
             ),
-            (int)config("notification.retry_delay_seconds"),
+            (int) config('notification.retry_delay_seconds'),
         );
     }
 }

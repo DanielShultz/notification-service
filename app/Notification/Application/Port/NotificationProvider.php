@@ -11,4 +11,3 @@ interface NotificationProvider
 {
     public function send(NotificationForDelivery $notification): ProviderDeliveryResult;
 }
-

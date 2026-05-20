@@ -14,6 +14,5 @@ final readonly class NotificationSummary
         public ?string $lastError,
         public string $createdAt,
         public string $updatedAt,
-    ) {
-    }
+    ) {}
 }

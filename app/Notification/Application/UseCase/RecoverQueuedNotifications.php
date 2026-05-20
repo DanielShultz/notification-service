@@ -15,14 +15,13 @@ final readonly class RecoverQueuedNotifications
         private NotificationDeliveryRepository $repository,
         private NotificationQueuePublisher $queuePublisher,
         private LoggerInterface $logger,
-    ) {
-    }
+    ) {}
 
     public function execute(int $limit = 100): int
     {
         $notifications = $this->repository->findQueuedForPublishing(
             $limit,
-            (int)config("notification.recovery_min_age_seconds"),
+            (int) config('notification.recovery_min_age_seconds'),
         );
 
         foreach ($notifications as $notification) {
@@ -37,8 +36,8 @@ final readonly class RecoverQueuedNotifications
             );
         }
 
-        $this->logger->info("Queued notifications recovery completed", [
-            "published_count" => count($notifications),
+        $this->logger->info('Queued notifications recovery completed', [
+            'published_count' => count($notifications),
         ]);
 
         return count($notifications);

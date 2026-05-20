@@ -6,8 +6,7 @@ namespace App\Notification\Domain\Enum;
 
 enum ProviderDeliveryStatus: string
 {
-    case Delivered = "delivered";
-    case TemporaryFailure = "temporary_failure";
-    case PermanentFailure = "permanent_failure";
+    case Delivered = 'delivered';
+    case TemporaryFailure = 'temporary_failure';
+    case PermanentFailure = 'permanent_failure';
 }
-

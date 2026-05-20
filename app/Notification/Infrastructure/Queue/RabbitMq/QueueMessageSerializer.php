@@ -17,10 +17,10 @@ final readonly class QueueMessageSerializer
     public function serialize(QueueMessage $message): string
     {
         return json_encode([
-            "notification_id" => $message->notificationId,
-            "attempt" => $message->attempt,
-            "trace_id" => $message->traceId,
-            "traffic_type" => $message->trafficType->value,
+            'notification_id' => $message->notificationId,
+            'attempt' => $message->attempt,
+            'batch_id' => $message->batchId,
+            'traffic_type' => $message->trafficType->value,
         ], JSON_THROW_ON_ERROR);
     }
 
@@ -33,31 +33,31 @@ final readonly class QueueMessageSerializer
         $data = json_decode($payload, true, 512, JSON_THROW_ON_ERROR);
 
         if (
-            !is_array($data)
-            || !isset($data["notification_id"], $data["attempt"], $data["trace_id"])
-            || !is_string($data["notification_id"])
-            || !is_int($data["attempt"])
-            || $data["attempt"] < 1
-            || !is_string($data["trace_id"])
+            ! is_array($data)
+            || ! isset($data['notification_id'], $data['attempt'], $data['batch_id'])
+            || ! is_string($data['notification_id'])
+            || ! is_int($data['attempt'])
+            || $data['attempt'] < 1
+            || ! is_string($data['batch_id'])
         ) {
-            throw new UnexpectedValueException("Invalid notification queue payload.");
+            throw new UnexpectedValueException('Invalid notification queue payload.');
         }
 
         $trafficType = NotificationTrafficType::Marketing;
 
-        if (isset($data["traffic_type"])) {
-            if (!is_string($data["traffic_type"])) {
-                throw new UnexpectedValueException("Invalid notification queue payload.");
+        if (isset($data['traffic_type'])) {
+            if (! is_string($data['traffic_type'])) {
+                throw new UnexpectedValueException('Invalid notification queue payload.');
             }
 
-            $trafficType = NotificationTrafficType::tryFrom($data["traffic_type"])
-                ?? throw new UnexpectedValueException("Invalid notification queue payload.");
+            $trafficType = NotificationTrafficType::tryFrom($data['traffic_type'])
+                ?? throw new UnexpectedValueException('Invalid notification queue payload.');
         }
 
         return new QueueMessage(
-            $data["notification_id"],
-            $data["attempt"],
-            $data["trace_id"],
+            $data['notification_id'],
+            $data['attempt'],
+            $data['batch_id'],
             $trafficType,
         );
     }

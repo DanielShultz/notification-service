@@ -10,7 +10,7 @@ use App\Notification\Domain\Enum\NotificationTrafficType;
 final readonly class CreateNotificationBatchRequest
 {
     /**
-     * @param array<int, string> $recipientIds
+     * @param  array<int, string>  $recipientIds
      */
     public function __construct(
         public NotificationChannel $channel,
@@ -18,7 +18,5 @@ final readonly class CreateNotificationBatchRequest
         public string $message,
         public array $recipientIds,
         public string $idempotencyKey,
-    ) {
-    }
+    ) {}
 }
-

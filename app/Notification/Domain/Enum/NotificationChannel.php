@@ -6,7 +6,6 @@ namespace App\Notification\Domain\Enum;
 
 enum NotificationChannel: string
 {
-    case Sms = "sms";
-    case Email = "email";
+    case Sms = 'sms';
+    case Email = 'email';
 }
-

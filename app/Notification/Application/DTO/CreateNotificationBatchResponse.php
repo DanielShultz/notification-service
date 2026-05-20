@@ -10,7 +10,5 @@ final readonly class CreateNotificationBatchResponse
         public string $batchId,
         public int $notificationCount,
         public bool $duplicate,
-    ) {
-    }
+    ) {}
 }
-

@@ -7,6 +7,7 @@ namespace App\Notification\Presentation\Http\Controller;
 use App\Http\Controllers\Controller;
 use App\Notification\Application\DTO\NotificationSummary;
 use App\Notification\Application\UseCase\GetNotificationBatchStatus;
+use App\Notification\Presentation\Http\NotificationStatusPresenter;
 use Illuminate\Http\JsonResponse;
 
 final class GetNotificationBatchStatusController extends Controller
@@ -17,30 +18,30 @@ final class GetNotificationBatchStatusController extends Controller
 
         if ($batch === null) {
             return response()->json([
-                "message" => "Notification batch not found.",
+                'message' => 'Notification batch not found.',
             ], 404);
         }
 
         return response()->json([
-            "batch_id" => $batch->id,
-            "channel" => $batch->channel,
-            "traffic_type" => $batch->trafficType,
-            "recipient_count" => $batch->recipientCount,
-            "status_counts" => $batch->statusCounts,
-            "notifications" => array_map(
+            'batch_id' => $batch->id,
+            'channel' => $batch->channel,
+            'traffic_type' => $batch->trafficType,
+            'recipient_count' => $batch->recipientCount,
+            'status_counts' => NotificationStatusPresenter::publicStatusCounts($batch->statusCounts),
+            'notifications' => array_map(
                 static fn (NotificationSummary $notification): array => [
-                    "notification_id" => $notification->id,
-                    "recipient_id" => $notification->recipientId,
-                    "status" => $notification->status,
-                    "attempts" => $notification->attempts,
-                    "last_error" => $notification->lastError,
-                    "created_at" => $notification->createdAt,
-                    "updated_at" => $notification->updatedAt,
+                    'notification_id' => $notification->id,
+                    'recipient_id' => $notification->recipientId,
+                    'status' => NotificationStatusPresenter::publicStatus($notification->status),
+                    'attempts' => $notification->attempts,
+                    'last_error' => $notification->lastError,
+                    'created_at' => $notification->createdAt,
+                    'updated_at' => $notification->updatedAt,
                 ],
                 $batch->notifications,
             ),
-            "created_at" => $batch->createdAt,
-            "updated_at" => $batch->updatedAt,
+            'created_at' => $batch->createdAt,
+            'updated_at' => $batch->updatedAt,
         ]);
     }
 }
