@@ -11,11 +11,12 @@ final readonly class RedisIdempotencyStore implements IdempotencyStore
 {
     public const KEY_PREFIX = 'notification:idempotency:';
 
-    private const RESERVED_VALUE = '__reserved__';
+    private const RESERVED_VALUE = "__reserved__";
 
     public function __construct(
         private Repository $cache,
-    ) {}
+    ) {
+    }
 
     public function reserve(string $key, int $ttlSeconds): bool
     {
@@ -35,11 +36,12 @@ final readonly class RedisIdempotencyStore implements IdempotencyStore
             return null;
         }
 
-        return (string) $value;
+        return (string)$value;
     }
 
     private function key(string $key): string
     {
-        return self::KEY_PREFIX.$key;
+        return "notification:idempotency:{$key}";
     }
 }
+
